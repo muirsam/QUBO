@@ -7,6 +7,11 @@ function [isIso, mat, result] = GraphMatchingProblem(A, B, ts)
     % This function implements the graph matching problem as a QUBO
     % problem and solves it using MATLABs built in QUBO solver.
     % 
+    % It then resurns a Boolean variable isIso which is true when the
+    % solution satisfies the constraints, the matrix mat which corresponds
+    % to the solution and result which contains additional information
+    % about the problem solution.
+    %
     % It can take it a tabuSearch object ts in order to control aspects of
     % the solver. More information about ts here,
     % https://uk.mathworks.com/help/matlab/ref/tabusearch.html
@@ -38,13 +43,9 @@ function [isIso, mat, result] = GraphMatchingProblem(A, B, ts)
     % construct d
     d = transpose(ones(1, 2*n));
 
-    % penalty modifiers
-    P1 = 100;
-    P2 = 100;
-
     % create Q matrix and solve QUBO
-    Q = -eye(n*n) + P1*transpose(C)*C + P2*transpose(H)*H;
-    qprob = qubo(Q, P1*(-2)*transpose(d)*C, transpose(d)*d);
+    Q = -eye(n*n) + 100*transpose(C)*C + 100)*transpose(H)*H;
+    qprob = qubo(Q, 100*(-2)*transpose(d)*C, transpose(d)*d);
     
     result = solve(qprob, Algorithm=ts);
     
