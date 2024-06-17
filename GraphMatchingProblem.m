@@ -1,6 +1,6 @@
 % Graph Matching problem
 
-function [isIso, mat, result] = GraphMatchingProblem2(A, B, varargin)
+function [isIso, mat, result] = GraphMatchingProblem(A, B, varargin)
     %{ This function takes in adjacency matrices 'A', 'B' and optional
     % arguments 'ts' and 'weights'.
     % 
