@@ -1,0 +1,237 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{bbold}
+
+% ========= Bibliography =========
+% These lines load the `biblatex' package
+% and read in the list of references from
+% References.bib - take a look.
+%
+% To generate References.bib, I recommend https://www.mybib.com/
+% rather than trying to write the .bib file yourself.
+%
+\usepackage{csquotes,biblatex}
+\addbibresource{References.bib}
+% ================================
+
+\usepackage[pdffitwindow=false,
+             plainpages=false,
+             pdfpagelabels=true,
+             pdfpagemode=UseOutlines,
+             pdfpagelayout=SinglePage,
+             bookmarks=false,
+             colorlinks=true,
+             hyperfootnotes=false,
+             linkcolor=blue,
+             urlcolor=blue!30!black,
+             citecolor=green!50!black]{hyperref}
+
+\newtheorem{prop}{Proposition} % This defines a theorem-like environment. See https://www.overleaf.com/learn/latex/theorems_and_proofs
+\newtheorem{lem}[prop]{Lemma}
+\newtheorem{thm}[prop]{Theorem}
+\newtheorem{cor}[prop]{Corollary}
+\newtheorem{defn}[prop]{Definition}
+
+\title{Quadratic Unconstrained Binary Optimization}
+\author{Sam Muir }
+\date{June 2024}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This project will begin by covering how QUBO models are constructed. Then we explore how QUBO models can be applied to the graph matching problem and the related quadratic assignment problem. Finally, we will discuss the application of 'quantum annealers' to solve QUBO problems. 
+
+This project will follow ideas from 'Continuous optimization methods for the graph isomorphism problem' by Stefan Klus and Patrick Gelß.
+
+\section{What are QUBO problems?}
+\begin{defn}
+A QUBO problem is an optimisation problem of form, 
+\begin{align*}
+    \min \: f(\mathbf{x}) = \mathbf{x}^T Q \mathbf{x}
+\end{align*}
+where \(\mathbf{x}\) is a vector of \(n\) binary variables and \(Q\) is a \(n \times n\) matrix.
+\end{defn}
+
+\noindent These are important because many famous optimisation problems can be expressed as QUBO problems. 
+
+\subsection{Example: Linear Assignment problem}
+
+The linear assignment problem can be stated as:
+
+Suppose we have \(n\) machines and \(n\) tasks which must be completed. We can assign any machine to do any task, but each task-machine pair will incur an associated cost. We want to allocate one machine to per task such that the sum of these costs is minimised. \\
+
+\noindent If we let \(A\) be the matrix of machine-task costs then the problem can expressed as: 
+\begin{align*}
+    \min \: g(P) = \text{tr}(PA)
+\end{align*}
+where \(P\) is a permutation matrix which represents a task allocation. \\
+
+\noindent We model this problem as a QUBO as follows: \\ 
+
+\noindent First, let \(A = \begin{pmatrix}
+    a_{11} & \hdots & a_{1n} \\
+    \vdots & \ddots & \vdots \\
+    a_{n1} & \hdots & a_{nn}
+\end{pmatrix}\) and \(P = \begin{pmatrix}
+    x_{1} & x_2 & \hdots & x_{n} \\
+    x_{n + 1} & x_{n + 2} & \hdots & x_{2n} \\
+    \vdots & \vdots & \ddots & \vdots \\
+    x_{n(n-1)+1} & x_{n(n-1)+2} & \hdots & x_{n^2}
+\end{pmatrix}\).
+Then the function to be minimized is,
+\begin{align*}
+    \text{tr} (PA) &= \begin{pmatrix}
+        x_1 \\
+        \vdots \\
+        x_n
+    \end{pmatrix} \cdot \begin{pmatrix}
+        a_{11}\\
+        \vdots \\
+        a_{n1}
+    \end{pmatrix} + \begin{pmatrix}
+        x_{n+1} \\
+        \vdots \\
+        x_{2n}
+    \end{pmatrix} \cdot \begin{pmatrix}
+        a_{12}\\
+        \vdots \\
+        a_{n2}
+    \end{pmatrix} + \hdots + \begin{pmatrix}
+        x_{n(n-1) + 1} \\
+        \vdots \\
+        x_{n^2}
+    \end{pmatrix} \cdot \begin{pmatrix}
+        a_{1n}\\
+        \vdots \\
+        a_{nn}
+    \end{pmatrix} \\
+    &= \sum_{i=1}^{n} \begin{pmatrix}
+        x_{n(i-1) + 1} \\
+        \vdots \\
+        x_{ni}
+    \end{pmatrix} \cdot \begin{pmatrix}
+        a_{1i} \\
+        \vdots \\
+        a_{ni}
+    \end{pmatrix} \\
+    &= \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji}x_{n(i-1)+j}
+\end{align*}
+But since \(x_i\) is binary, \(x_i = x_i^2\), and so 
+\begin{align*}
+    \text{tr}(PA) &= \sum_{i=1}^{n} \sum_{j=1}^{n} a_{ji}x_{n(i-1)+j} \\
+    &= \mathbf{x}^T \text{diag}(\text{vec}(A))\mathbf{x}.
+\end{align*}\\
+\noindent So we can now write the problem as 
+\begin{align} \label{Ex:LinAss 1}
+    \min g(\mathbf{x}) = \mathbf{x}^T \text{diag}(\text{vec}(A)) \mathbf{x}
+\end{align}
+where \(\mathbf{x} = \text{vec}(P^T)\) and \(P\) is a permutation matrix.\\
+
+\noindent Now we need a penalty function which forces \(P\) to be a permutation matrix. To accomplish this we can use the equation \(C\mathbf{x} = d\) given in \cite[p.~8]{klus2023continuous} where 
+\begin{align*}
+    C = \begin{pmatrix}
+        \mathbb{1}_n^T & & \\
+         & \ddots & \\ 
+         & & \mathbb{1}_n^T \\
+         e_1^T & \hdots & e_1^T \\
+         \vdots & \ddots & \vdots \\
+         e_n^T & \hdots & e_n^T
+    \end{pmatrix} \in \mathbb{R}^{2n \times n^2}
+\end{align*}
+and \(d = \mathbb{1}_{2n}\). \\
+This equation is 0 if and only if \(P\) is doubly stochastic. But if \(P\) is double stochastic it is also a permutation matrix since each entry is binary. Hence the penalty \((C\mathbf{x} - d) \cdot (C\mathbf{x} - d)\) can be added to (\ref{Ex:LinAss 1}) to cause it to favour permutation matrices.
+
+\subsection{Example: Sudoku}
+
+Sudoku we are given a partially completed 9 by 9 grid and tasked to populate the remainder of the grid such that each column, row and box contains the numbers from 1 to 9.
+
+We can express the linear assignment problem as follows,
+
+\subsection{Example: Rubik's cube}
+
+\newpage
+
+\section{Graph Isomorphism and Matching problems}
+\subsection{The Graph Isomorphism problem}
+\colorbox{BurntOrange}{Maybe include summary of what graph isomorphism and matching is?}
+
+First we need to establish some results from \autocite{klus2023continuous}.
+\begin{defn}\label{def:1}
+    \cite[p.~6]{klus2023continuous} Suppose we have graphs \(G_A\) and \(G_B\) with adjacency matrices \(A\) and \(B\) respectively. The doubly stochastic relaxation of the graph isomorphism problem can be formulated as
+    \begin{equation*}
+        c_D = \min_{X \in D(n)} ||XA - BX||^2_F
+    \end{equation*}
+    where \(D(n)\) is the set of doubly stochastic matrices and \(||\cdot||_F\) denotes the Frobenius norm.
+\end{defn}
+
+\begin{lem}
+    \cite[p.~13]{klus2023continuous} If we penalize non-binary matrices, this problem can be written as \begin{align*}
+    \min_{\substack{\mathbf{x}\geq 0 \\ C\mathbf{x} = d \\ H\mathbf{x} = 0}} -\mathbf{x}^T \mathbf{x}
+    \end{align*}
+    with \(\mathbf{x} = \begin{bmatrix}
+        X_1 \\
+        \vdots \\
+        X_n
+    \end{bmatrix}\) where \(X_1, \dots X_n\) are the columns of \(X\) and \(C\), \(d\), and H are defined as shown on \cite[p.~8]{klus2023continuous}.
+\end{lem}
+
+\noindent To obtain a QUBO formulation of this problem we can transform the constraints into penalties as shown below.
+\begin{center}
+\begin{tabular}{ |c|c|c| } 
+ \hline
+   & Constraint  & Penalty \\ 
+ \hline
+ 1 & \(C\mathbf{x} = d\) & \((C\mathbf{x} - d)\cdot(C\mathbf{x} - d)\) \\ 
+ 2 & \(H\mathbf{x} = 0\) & \(H \mathbf{x} \cdot H \mathbf{x} \) \\ 
+ \hline
+\end{tabular}
+\end{center}
+These penalties are 0 for functions which satisfy the constraints and positively-valued otherwise. Therefore by scaling each penalty by the weights \(\lambda_1\) and \(\lambda_2\) then adding them to the objective function we can ensure that the optimal solution to the QUBO problem corresponds to a isomorphism (if it exists).\\
+
+\noindent Penalty 1 can be simplified to,
+\begin{align*}
+    (C\mathbf{x} - d)\cdot (C\mathbf{x} - d) &= C\mathbf{x} \cdot C\mathbf{x} - 2d\cdot C\mathbf{x} - d\cdot d \\
+    &= \mathbf{x}^T C^T C \mathbf{x} - 2d\cdot Cx - d\cdot d.
+\end{align*}
+But \(\mathbf{x}\) is a binary vector, so \(\mathbf{x}_i = \mathbf{x}_i^2\) for all \(i\) and therefore the linear term \(-2d\cdot C\mathbf{x}\) can be expressed as a quadratic term. So we can write \(-2d\cdot C \mathbf{x} = -2\mathbf{x}^T\text{diag}(C^Td)\mathbf{x}\) and thus penalty 1 becomes
+\begin{align*}
+    (C\mathbf{x} - d)\cdot (C\mathbf{x} - d) = \mathbf{x}^T( C^T C -2\text{diag}(C^T d))\mathbf{x} - d\cdot d
+\end{align*}
+where diag\((v)\) is the function which maps the \(i\)th entry of \(v\) to the \(i\)th diagonal entry of a diagonal matrix.\\
+
+\noindent Penalty 2 can be written as,
+\begin{align*}
+    H\mathbf{x} \cdot H\mathbf{x} = \mathbf{x}^T H^T H \mathbf{x}.
+\end{align*}
+
+\noindent So the QUBO formulation of this problem is 
+\begin{align*}
+    &-\mathbf{x}^T \mathbf{x} + \lambda_1(C\mathbf{x} - d)\cdot (C\mathbf{x} - d)  +\lambda_2 H\mathbf{x} \cdot H\mathbf{x}\\
+    = &-\mathbf{x}^T \mathbf{x} + \lambda_1(\mathbf{x}^T( C^T C -2\text{diag}(C^T d))\mathbf{x} - d\cdot d) + \lambda_2 \mathbf{x}^T H^T H \mathbf{x}\\
+    = &\hspace{5pt} \mathbf{x}^T (-I + \lambda_1( C^T C -2\text{diag}(C^T d)) + 
+    \lambda_2 H^T H) \mathbf{x} - \lambda_1 d \cdot d.
+\end{align*}\\
+We can drop the constant \(- \lambda_1 d \cdot d\) at the end and then write the problem as
+\begin{align*}
+    \min \: f(\mathbf{x}) = \mathbf{x}^T Q \mathbf{x}
+\end{align*}
+where \(Q = -I + \lambda_1( C^T C -2\text{diag}(C^T d)) + \lambda_2 H^T H\).\\
+
+\noindent Note that depending on the penalty weights used the optimal solution may not correspond to an isomorphism. So each optimal solution should be tested against the constraints.
+
+\subsection{Example: Graph Isomorphism problem}
+
+
+
+
+
+
+\nocite{*}
+\printbibliography % This command prints the cited references.
+
+\end{document}
