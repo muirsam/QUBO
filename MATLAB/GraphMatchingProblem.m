@@ -14,8 +14,7 @@ function [isIso, mat, result] = GraphMatchingProblem(A, B, varargin)
     %
     % The optional argument 'ts' is a tabuSearch object which controls 
     % properties of the algorithm used to find a solution.
-    % The optional argument 'weights' is a 1 x 2 array of doubles which 
-    % control the penalty weights.
+    % The optional argument 'weight' controls the penalty weight.
     %}
 
     % optional argument stuff
@@ -23,7 +22,7 @@ function [isIso, mat, result] = GraphMatchingProblem(A, B, varargin)
     addRequired(p,'A');
     addRequired(p,'B');
     addParameter(p, 'ts', tabuSearch());
-    addParameter(p, 'weight', [10, 10]);
+    addParameter(p, 'weight', 10);
     parse(p, A, B, varargin{:})
 
     n = size(A, 1); % This assumes both adjacency matrices are the same size
@@ -48,7 +47,7 @@ function [isIso, mat, result] = GraphMatchingProblem(A, B, varargin)
     d = transpose(ones(1, 2*n));
     
     % Create QUBO matrix Q
-    Q = -eye(n^2) + p.Results.weight(1)*transpose(C)*C - p.Results.weight(1)*2*diag(transpose(C)*d) + p.Results.weight(2)*transpose(H)*H;
+    Q = H + p.Results.weight*(transpose(C)*C - 2*diag(transpose(C)*d));
     qprob = qubo(Q);
 
     result = solve(qprob, Algorithm=p.Results.ts);
