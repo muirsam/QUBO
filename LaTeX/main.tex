@@ -3,6 +3,7 @@
 \usepackage{amsmath,amsfonts,amssymb}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{bbold}
+\usepackage{float}
 
 % ========= Bibliography =========
 % These lines load the `biblatex' package
@@ -59,11 +60,11 @@ where \(\mathbf{x}\) is a vector of \(n\) binary variables and \(Q\) is a \(n \t
 
 \noindent These are important because many famous optimisation problems can be expressed as QUBO problems. 
 
-\subsection{Example: Linear Assignment problem}
+\subsection{Linear Assignment problem}
 
 The linear assignment problem can be stated as:
 
-Suppose we have \(n\) machines and \(n\) tasks which must be completed. We can assign any machine to do any task, but each task-machine pair will incur an associated cost. We want to allocate one machine to per task such that the sum of these costs is minimised. \\
+Suppose we have \(n\) machines and \(n\) tasks which must be completed. We can assign any machine to do any task, but each task-machine pair has an associated cost. We want to allocate one machine to each task such that the sum of the costs is minimised. \\
 
 \noindent If we let \(A\) be the matrix of machine-task costs then the problem can expressed as: 
 \begin{align*}
@@ -132,7 +133,7 @@ But since \(x_i\) is binary, \(x_i = x_i^2\), and so
 \end{align}
 where \(\mathbf{x} = \text{vec}(P^T)\) and \(P\) is a permutation matrix.\\
 
-\noindent Now we need a penalty function which forces \(P\) to be a permutation matrix. To accomplish this we can use the equation \(C\mathbf{x} = d\) given in \cite[p.~8]{klus2023continuous} where 
+\noindent Now we need a penalty function which forces \(P\) to be a permutation matrix. To accomplish this we use the equation \(C\mathbf{x} = d\) given in \cite[p.~8]{klus2023continuous} where 
 \begin{align*}
     C = \begin{pmatrix}
         \mathbb{1}_n^T & & \\
@@ -144,13 +145,135 @@ where \(\mathbf{x} = \text{vec}(P^T)\) and \(P\) is a permutation matrix.\\
     \end{pmatrix} \in \mathbb{R}^{2n \times n^2}
 \end{align*}
 and \(d = \mathbb{1}_{2n}\). \\
-This equation is 0 if and only if \(P\) is doubly stochastic. But if \(P\) is double stochastic it is also a permutation matrix since each entry is binary. Hence the penalty \((C\mathbf{x} - d) \cdot (C\mathbf{x} - d)\) can be added to (\ref{Ex:LinAss 1}) to cause it to favour permutation matrices.
+This equation is 0 if and only if \(P\) is doubly stochastic. But if \(P\) is double stochastic it is also a permutation matrix since each entry is binary. Therefore this constraint forces each \(P\) to be a permutation matrix.
 
-\subsection{Example: Sudoku}
+\newpage
+\noindent We can transform the constraint \(C\mathbf{x} = d\) into the penalty \((C\mathbf{x} - d) \cdot (C\mathbf{x} - d)\). Adding this to (\ref{Ex:LinAss 1}) will favour solutions which are  permutation matrices.
+Expanding this penalty we get,
+\begin{align*}
+    (C\mathbf{x} - d) \cdot (C\mathbf{x} - d) &= C\mathbf{x} \cdot C\mathbf{x} - 2d\cdot C\mathbf{x} + d \cdot d \\
+    &= \mathbf{x}^T C^T C \mathbf{x} -2\mathbf{x}^T C^T d + d\cdot d
+\end{align*}
 
-Sudoku we are given a partially completed 9 by 9 grid and tasked to populate the remainder of the grid such that each column, row and box contains the numbers from 1 to 9.
+\noindent Then since \(\mathbf{x}\) is binary \(x_i = x_i^2\) the linear term \(-2\mathbf{x}^T C^T d\) can be expressed as the quadratic term \(-2\mathbf{x}^T\text{diag}(C^Td)\mathbf{x}\). So the penalty term becomes
+\begin{align*}
+    &\mathbf{x}^T C^T C \mathbf{x} -2\mathbf{x}^T\text{diag}(C^Td)\mathbf{x} + d\cdot d \\
+    = \: &\mathbf{x}^T(C^T C -2\text{diag}(C^Td))\mathbf{x} + d\cdot d.
+\end{align*}
+And so we can rewrite problem (\ref{Ex:LinAss 1}) as 
+\begin{align*}
+    \min g(\mathbf{x}) = \mathbf{x}^T (\text{diag}(\text{vec}(A)) + \lambda C^T C - 2\lambda\text{diag}(C^T d))\mathbf{x} + \lambda d\cdot d
+\end{align*}
+where \(\lambda\) is the penalty weight. Then to get it in QUBO form we drop the consant to get
+\begin{align*}
+    \min g(\mathbf{x}) = \mathbf{x}^T Q \mathbf{x}
+\end{align*}
+where \(Q = \text{diag}(\text{vec}(A) - 2\lambda C^Td) + \lambda C^T C\).
+\subsubsection{Example: Linear Assignment Problem}
 
-We can express the linear assignment problem as follows,
+Consider the cost matrix, \begin{align*}
+    A = \begin{pmatrix}
+        7 & 9 & 1\\
+        4 & 2 & 6\\
+        7 & 8 & 7
+    \end{pmatrix}
+\end{align*}
+where each column corresponds to a task and each row corresponds to the machine costs. Using \(A\) and setting \(\lambda = 10\) we obtain the matrix
+\begin{align*}
+    Q = \begin{pmatrix}
+        -13 & 10 & 10 & 10 & 0 & 0 & 10 & 0 & 0 \\
+        10 & -16 & 10 & 0 & 10 & 0 & 0 & 10 & 0 \\
+        10 & 10 & -13 & 0 & 0 & 10 & 0 & 0 & 10 \\
+        10 & 0 & 0 & -11 & 10 & 10 & 10 & 0 & 0 \\
+        0 & 10 & 0 & 10 & -18 & 10 & 0 & 10 & 0 \\
+        0 & 0 & 10 & 10 & 10 & -12 & 0 & 0 & 10 \\
+        10 & 0 & 0 & 10 & 0 & 0 & -19 & 10 & 10 \\
+        0 & 10 & 0 & 0 & 10 & 0 & 10 & -14 & 10 \\
+        0 & 0 & 10 & 0 & 0 & 10 & 10 & 10 & -13
+    \end{pmatrix}
+\end{align*}
+Solving this gives \(X = \begin{pmatrix}
+    0 & 0 & 1 & 0 & 1 & 0 & 1 & 0 & 0
+\end{pmatrix}^T\)
+and so we have \begin{align*}
+    P = \begin{pmatrix}
+        0 & 0 & 1 \\
+        0 & 1 & 0 \\
+        1 & 0 & 0
+    \end{pmatrix}, \quad PA = \begin{pmatrix}
+        7 & 8 & 7 \\
+        4 & 2 & 6 \\
+        7 & 9 & 1
+    \end{pmatrix}
+\end{align*}
+which tells us that the minimum cost is \(\text{tr}(PA) = 10\).
+\subsection{Sudoku}
+
+In the game of Sudoku we are given a partially filled \(9 \times 9\) grid (81 squares) and the aim is to populate the remainder of the grid such that every column, row and box contains each of the numbers from 1 to 9. These boxes split the \(9 \times 9\) grid into 9 non-overlapping \(3 \times 3\) grids.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.5]{sudoku.png}
+    \caption{Medium Sudoku puzzle from New York Times on June 24, 2024}
+    \label{fig:Sudoku 1}
+\end{figure}
+
+\noindent We can formulate the Sudoku problem as follows. Following \cite[p.~1]{mücke2024sudoku} the vector \(\mathbf{x}\) will have 9 binary entries for each Sudoku square \(x_{i,j,k} = x_{81i + 9j + k}\). So each variable \(x_{i,j,k}\) is defined as
+\begin{align*}
+    x_{i,j,k} = \begin{cases}
+        1 & \text{if row \(i\) column \(j\) has value \(k\)} \\
+        0 & \text{otherwise.}
+    \end{cases}
+\end{align*}
+The constraints of this problem are:
+\begin{center}
+\begin{tabular}{ |c|c| } 
+ \hline
+   & Constraint\\ 
+ \hline
+ 1 & Each column contains 1 to 9\\ 
+ 2 & Each row contains 1 to 9\\
+ 3 & Each box contains 1 to 9\\
+ 4 & Every square has a value\\
+ 5 & Some squares have been filled\\
+ \hline
+\end{tabular}
+\end{center}
+THIS BOX COULD BE WRONG
+
+\noindent Using \cite[p.~326]{ILPsudoku} the constraints become
+\begin{equation*}
+\begin{aligned} 
+\text{(1)} \quad \sum_{i=1}^9 x_{i,j,k} &= 1\quad \forall j,k \in \{1 \dots 9\} \\
+\end{aligned}
+\end{equation*}
+
+
+\begin{equation*}
+\begin{aligned} 
+&\text{(2)} \quad \sum_{j=1}^9 x_{i,j,k} &&= 1\quad \forall i,k \in \{1 \dots 9\} \\
+&\text{(3)} \quad \sum_{j=3q-2}^{3q} \sum_{i=3p-2}^{3p} x_{i,j,k} &&= 1\quad \forall k \in \{1 \dots 9\}, \forall p,q \in \{1 \dots 3\}\\
+&\text{(4)} \quad \sum_{k=1}^9 x_{i,j,k} &&= 1\quad \forall i,j \in \{1 \dots 9\} \\
+&\text{(5)} \quad x_f &&= 1\quad \forall f \in F
+\end{aligned}
+\end{equation*}
+where \(F\) is the set containing all triples corresponding to the indices of the filled squares. \\
+
+\noindent Now we transform these constraints into penalties by subtracting 1 from both sides and squaring them. If we consider an binary vector \(\mathbf{v}\) with \(n\) entries, we find that  
+\begin{align*}
+    \bigg(\sum_{i=1}^n v_i - 1\bigg)^2 &= \sum_{i=1}^n v_i \sum_{i=1}^n v_i - 2\sum_{i=1}^n v_i + 1 \\
+    &= \sum_{i=1}^n \sum_{j=1}^n v_iv_j - 2\sum_{i=1}^n v_i^2 + 1 \\
+    &= \mathbf{v}^T\begin{pmatrix}
+        1 & 1 & \dots \\
+        1 & 1 & \dots \\
+        \vdots & \vdots & \ddots
+    \end{pmatrix} \mathbf{v} + \mathbf{v}^T(-2 I)\mathbf{v} + 1 \\
+    &= \mathbf{v}^T (\text{ones} (n, n) - 2I_n )\mathbf{v} + 1
+\end{align*}
+
+
+
+
 
 \subsection{Example: Rubik's cube}
 
@@ -158,9 +281,13 @@ We can express the linear assignment problem as follows,
 
 \section{Graph Isomorphism and Matching problems}
 \subsection{The Graph Isomorphism problem}
-\colorbox{BurntOrange}{Maybe include summary of what graph isomorphism and matching is?}
+Two graphs \(G_A\) and \(G_B\) are isomorphic iff there exists a bijection between the vertices of the graphs such that every edge connecting vertices in \(G_A\) corresponds to a edge connecting vertices in \(G_B\). \\
+Essentially, isomorphism means each graph can be rearranged and relabelled to look identical to the other. \\
 
-First we need to establish some results from \autocite{klus2023continuous}.
+\noindent Look at these two graphs, 
+
+
+\noindent First we need to establish some results from \autocite{klus2023continuous}.
 \begin{defn}\label{def:1}
     \cite[p.~6]{klus2023continuous} Suppose we have graphs \(G_A\) and \(G_B\) with adjacency matrices \(A\) and \(B\) respectively. The doubly stochastic relaxation of the graph isomorphism problem can be formulated as
     \begin{equation*}
