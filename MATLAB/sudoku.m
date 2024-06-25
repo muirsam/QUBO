@@ -3,16 +3,16 @@ function [sol, result, varargout] = sudoku(clues, varargin)
     % array in 'clues' repressents a Sudoku position that has already been
     % filled. Each clue has form [row, column, value].
     %
-    % It solves each 9 by 9 Sudoku using MATLABs built in QUBO solver.
+    % This function REQUIRES the file 'sudokuQ.mat' to create the QUBO matrix
     %
-    % It will return the boolean 'isValid' which tells you if the solution
-    % satisfies the constraints, the matrix 'sol' which corresponds to the
+    % It will return the boolean the matrix 'sol' which corresponds to the
     % solution and the quboResult 'result' which contains additional
     % information about the solution process.
     %
     % The optional argument 'ts' is a tabuSearch object which controls 
     % properties of the algorithm used to find a solution.
-    %
+    % It can also check the validity of the result by setting 
+    % the paramater 'test' = true
     %}
 
     % optional argument stuff
