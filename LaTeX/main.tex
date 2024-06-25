@@ -1,6 +1,6 @@
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
-\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{amsmath, amsfonts, amssymb}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{bbold}
 \usepackage{float}
@@ -13,7 +13,7 @@
 % To generate References.bib, I recommend https://www.mybib.com/
 % rather than trying to write the .bib file yourself.
 %
-\usepackage{csquotes,biblatex}
+\usepackage{csquotes, biblatex}
 \addbibresource{References.bib}
 % ================================
 
@@ -145,7 +145,7 @@ where \(\mathbf{x} = \text{vec}(P^T)\) and \(P\) is a permutation matrix.\\
     \end{pmatrix} \in \mathbb{R}^{2n \times n^2}
 \end{align*}
 and \(d = \mathbb{1}_{2n}\). \\
-This equation is 0 if and only if \(P\) is doubly stochastic. But if \(P\) is double stochastic it is also a permutation matrix since each entry is binary. Therefore this constraint forces each \(P\) to be a permutation matrix.
+This equation is 0 if and only if \(P\) is doubly stochastic. But if \(P\) is doubly stochastic it is also a permutation matrix since each entry is binary. So this constraint forces \(P\) to be a permutation matrix.
 
 \newpage
 \noindent We can transform the constraint \(C\mathbf{x} = d\) into the penalty \((C\mathbf{x} - d) \cdot (C\mathbf{x} - d)\). Adding this to (\ref{Ex:LinAss 1}) will favour solutions which are  permutation matrices.
@@ -234,14 +234,12 @@ The constraints of this problem are:
  1 & Each column contains 1 to 9\\ 
  2 & Each row contains 1 to 9\\
  3 & Each box contains 1 to 9\\
- 4 & Every square has a value\\
- 5 & Some squares have been filled\\
+ 4 & Every square must have a value\\
  \hline
 \end{tabular}
 \end{center}
-THIS BOX COULD BE WRONG
 
-\noindent Using \cite[p.~326]{ILPsudoku} the constraints become
+\noindent Using \cite[p.~326]{ILPsudoku} the constraints above become
 \begin{equation*}
 \begin{aligned} 
 \text{(1)} \quad \sum_{i=1}^9 x_{i,j,k} &= 1\quad \forall j,k \in \{1 \dots 9\} \\
@@ -254,30 +252,46 @@ THIS BOX COULD BE WRONG
 &\text{(2)} \quad \sum_{j=1}^9 x_{i,j,k} &&= 1\quad \forall i,k \in \{1 \dots 9\} \\
 &\text{(3)} \quad \sum_{j=3q-2}^{3q} \sum_{i=3p-2}^{3p} x_{i,j,k} &&= 1\quad \forall k \in \{1 \dots 9\}, \forall p,q \in \{1 \dots 3\}\\
 &\text{(4)} \quad \sum_{k=1}^9 x_{i,j,k} &&= 1\quad \forall i,j \in \{1 \dots 9\} \\
-&\text{(5)} \quad x_f &&= 1\quad \forall f \in F
 \end{aligned}
 \end{equation*}
 where \(F\) is the set containing all triples corresponding to the indices of the filled squares. \\
 
-\noindent Now we transform these constraints into penalties by subtracting 1 from both sides and squaring them. If we consider an binary vector \(\mathbf{v}\) with \(n\) entries, we find that  
+\noindent We can transform these constraints into penalty functions by subtracting 1 and squaring them. Then to obtain a solution to these constraints we minimise the sum of these penalties. This also means that we don't need any penalty weights.\\
+
+\noindent Consider the 1st constraint for some fixed \(j\) and \(k\). Expanding the corresponding penalty gives us
 \begin{align*}
-    \bigg(\sum_{i=1}^n v_i - 1\bigg)^2 &= \sum_{i=1}^n v_i \sum_{i=1}^n v_i - 2\sum_{i=1}^n v_i + 1 \\
-    &= \sum_{i=1}^n \sum_{j=1}^n v_iv_j - 2\sum_{i=1}^n v_i^2 + 1 \\
-    &= \mathbf{v}^T\begin{pmatrix}
-        1 & 1 & \dots \\
-        1 & 1 & \dots \\
-        \vdots & \vdots & \ddots
-    \end{pmatrix} \mathbf{v} + \mathbf{v}^T(-2 I)\mathbf{v} + 1 \\
-    &= \mathbf{v}^T (\text{ones} (n, n) - 2I_n )\mathbf{v} + 1
+    \bigg(\sum_{i=1}^9 x_{i,j,k} - 1\bigg)^2 &= \sum_{i=1}^9 x_{i,j,k}\sum_{p=1}^9 x_{p,j,k} -2\sum_{i=1}^9 x_{i,j,k} + 1  \\
+    &= \sum_{i=1}^9\sum_{p=1}^9 x_{i,j,k}x_{p,j,k} -2\sum_{i=1}^9 x_{i,j,k}^2 + 1 \\
+    &= \begin{pmatrix}
+        x_{1,j,k} & \dots & x_{9,j,k}
+    \end{pmatrix} (J_9 - 2I) \begin{pmatrix}
+        x_{1,j,k} \\
+        \vdots \\
+        x_{9,j,k}
+    \end{pmatrix} + 1
 \end{align*}
+where \(J_n\) is the \(n \times n\) matrix of ones. \\
 
+\noindent This we can replace \(\begin{pmatrix}
+        x_{1,j,k} & \dots & x_{9,j,k}
+    \end{pmatrix}^T\) with \(\mathbf{x}\) if we
+    embed \(J_9 - 2I\) in a larger matrix with zeros everywhere but the rows and columns representing \(x_{1,j,k} \dots x_{9,j,k}\).\\
 
+\noindent If we do this for every constraint and drop the constant we can add all 324 matrices to get a \(729 \times 729\) matrix \(U\)\footnote{This matrix is provided on the GitHub page under the name 'sudokuQ.mat' }.\\
 
+\noindent Then we can take the squares which have already been filled and turn them into constraints. So the constraint \(x_{i,j,k} = 1\) becomes 
+\begin{align*}
+    (x_{i,j,k} - 1)^2 &= x_{i,j,k}^2 - 2x_{i,j,k} + 1 \\
+    &= -x_{i,j,k}^2 + 1
+\end{align*}
+which can be interpreted as subtracting 1 from \((i,j,k)\)th element on the diagonal of \(U\). Doing this for every square which has been filled creates the matrix \(Q\).\\
 
-
-\subsection{Example: Rubik's cube}
-
-\newpage
+\noindent Finally, solving the QUBO problem
+\begin{align*}
+    \min \mathbf{x}^T Q \mathbf{x}
+\end{align*}
+will give us the vector \(\mathbf{x}\) which is the solution of the original Sudoku problem.
+ 
 
 \section{Graph Isomorphism and Matching problems}
 \subsection{The Graph Isomorphism problem}
