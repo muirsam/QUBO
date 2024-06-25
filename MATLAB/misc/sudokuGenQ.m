@@ -68,3 +68,5 @@ for p=1:sqrt(n)
         end
     end
 end 
+
+save("sudokuQ.mat", 'Q')
