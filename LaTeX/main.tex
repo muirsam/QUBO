@@ -58,7 +58,10 @@ A QUBO problem is an optimisation problem of form,
 where \(\mathbf{x}\) is a vector of \(n\) binary variables and \(Q\) is a \(n \times n\) matrix.
 \end{defn}
 
-\noindent These are important because many famous optimisation problems can be expressed as QUBO problems. 
+\noindent At first glance this definition seems useless.
+\subsubsection{sd}
+
+These are important because many famous optimisation problems can be expressed as QUBO problems. 
 
 \subsection{Linear Assignment problem}
 
@@ -290,8 +293,9 @@ which can be interpreted as subtracting 1 from \((i,j,k)\)th element on the diag
 \begin{align*}
     \min \mathbf{x}^T Q \mathbf{x}
 \end{align*}
-will give us the vector \(\mathbf{x}\) which is the solution of the original Sudoku problem.
+will give us the \(\mathbf{x}\) which is a solution of the original Sudoku problem.
  
+Unfortunately, since \(Q\) is so large it is not always feasible to use this approach to obtain solutions to Sudoku problems. The has been a basic overview of embedding Sudoku as a QUBO problemm, a more efficient embedding is given by \cite{mücke2024sudoku}.
 
 \section{Graph Isomorphism and Matching problems}
 \subsection{The Graph Isomorphism problem}
@@ -366,11 +370,6 @@ where \(Q = -I + \lambda_1( C^T C -2\text{diag}(C^T d)) + \lambda_2 H^T H\).\\
 \noindent Note that depending on the penalty weights used the optimal solution may not correspond to an isomorphism. So each optimal solution should be tested against the constraints.
 
 \subsection{Example: Graph Isomorphism problem}
-
-
-
-
-
 
 \nocite{*}
 \printbibliography % This command prints the cited references.
