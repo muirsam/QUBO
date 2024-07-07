@@ -35,11 +35,14 @@ function [sol, result, varargout] = sudoku(clues, varargin)
     % entries given
     for i=transpose(clues)
         B = transpose(i);
-        Q(conI(B(1),B(2),B(3)),conI(B(1),B(2),B(3))) = Q(conI(B(1),B(2),B(3)),conI(B(1),B(2),B(3))) - 1;
+        for j=1:n
+            Q(conI(B(1),B(2),j),conI(B(1),B(2),j)) = Q(conI(B(1),B(2),j),conI(B(1),B(2),j)) + 1;
+        end
+        Q(conI(B(1),B(2),B(3)),conI(B(1),B(2),B(3))) = Q(conI(B(1),B(2),B(3)),conI(B(1),B(2),B(3))) - 2;
     end
     
     % solve QUBO
-    qprob = qubo(Q);
+    qprob = qubo(Q, [], size(clues, 1)+324);
     result = solve(qprob, Algorithm=algo);
     
     % convert solution to vector 
@@ -56,6 +59,7 @@ function [sol, result, varargout] = sudoku(clues, varargin)
     solution = reshape(vec, n, []);
     sol = transpose(solution);
     
+    % check solution
     if p.Results.test == true
         isValid = true;
 
