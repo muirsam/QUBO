@@ -19,8 +19,8 @@ function [isIso, mat, result] = QuadraticAssignmentProblem(F, D, varargin)
 
     % optional argument stuff
     p = inputParser;
-    addRequired(p,'A');
-    addRequired(p,'B');
+    addRequired(p,'F');
+    addRequired(p,'D');
     addParameter(p, 'ts', tabuSearch());
     addParameter(p, 'weight', 100);
     parse(p, F, D, varargin{:})
