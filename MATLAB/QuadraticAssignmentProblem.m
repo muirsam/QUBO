@@ -22,7 +22,7 @@ function [isIso, mat, result] = QuadraticAssignmentProblem(F, D, varargin)
     addRequired(p,'A');
     addRequired(p,'B');
     addParameter(p, 'ts', tabuSearch());
-    addParameter(p, 'weight', 10);
+    addParameter(p, 'weight', 100);
     parse(p, F, D, varargin{:})
 
     n = size(F, 1); % This assumes both adjacency matrices are the same size
